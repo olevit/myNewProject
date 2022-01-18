@@ -26,7 +26,6 @@ export const authSignUpUser = ({ email, password, nickname }) => async (
     dispatch(updateUserProfile(userUpdateProfile));
   } catch (error) {
     console.log("error", error);
-
     console.log("error.message", error.message);
   }
 };
@@ -37,7 +36,6 @@ export const authSignInUser = ({ email, password }) => async (
 ) => {
   try {
     const user = await db.auth().signInWithEmailAndPassword(email, password);
-    console.log("user", user);
   } catch (error) {
     console.log("error", error);
     console.log("error.code", error.code);
@@ -50,7 +48,7 @@ export const authSignOutUser = () => async (dispatch, getState) => {
   dispatch(authSignOut());
 };
 
-export const authStateCahngeUser = () => async (dispatch, getState) => {
+export const authStateChangeUser = () => async (dispatch, getState) => {
   await db.auth().onAuthStateChanged((user) => {
     if (user) {
       const userUpdateProfile = {

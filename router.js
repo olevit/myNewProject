@@ -3,7 +3,6 @@ import React from "react";
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 
-
 const AuthStack = createNativeStackNavigator();
 const MainTab = createBottomTabNavigator();
 
@@ -18,18 +17,19 @@ import { AntDesign } from "@expo/vector-icons";
 
 export const useRoute = (isAuth) => {
     if(!isAuth){
-    return (
+        return (
             <AuthStack.Navigator screenOptions={{
                                          headerShown: false, animation:'slide_from_right',
                                        }}>
-                   <AuthStack.Screen  name="Register" component={Registration} />
-                   <AuthStack.Screen  name="Login" component={Login} />
+               <AuthStack.Screen  name="Register" component={Registration} />
+               <AuthStack.Screen  name="Login" component={Login} />
             </AuthStack.Navigator>
-         );
+        );
     }
+
     return(
         <MainTab.Navigator screenOptions={{ tabBarShowLabel: false, headerShown: false, }}>
-              <MainTab.Screen
+            <MainTab.Screen
                 options={{ tabBarIcon: ({ focused, size, color }) => (
                     <MaterialCommunityIcons
                       name="postage-stamp"
@@ -40,16 +40,16 @@ export const useRoute = (isAuth) => {
                 }}
                 name="Posts"
                 component={PostsScreen}
-              />
-              <MainTab.Screen
+            />
+            <MainTab.Screen
                 options={{ tabBarIcon: ({ focused, size, color }) => (
                     <AntDesign name="pluscircleo" size={35} color={color} />
                   ),
                 }}
                 name="Create"
                 component={CreateScreen}
-              />
-              <MainTab.Screen
+            />
+            <MainTab.Screen
                 options={{ tabBarIcon: ({ focused, size, color }) => (
                     <MaterialCommunityIcons
                       name="face-profile"
@@ -60,7 +60,7 @@ export const useRoute = (isAuth) => {
                 }}
                 name="Profile"
                 component={ProfileScreen}
-              />
-            </MainTab.Navigator>
+            />
+      </MainTab.Navigator>
     );
 };

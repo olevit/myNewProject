@@ -1,28 +1,31 @@
 import React, { useState, useEffect } from "react";
+import { useSelector } from "react-redux";
 import { Camera } from "expo-camera";
-import { View, Text, StyleSheet, Image } from "react-native";
+import { View, Text, StyleSheet, Image, TextInput } from "react-native";
 import { TouchableOpacity } from "react-native-gesture-handler";
 import * as Location from "expo-location";
-
+import db from "../../firebase/config";
 
 const CreateScreen = ({ navigation }) => {
   const [hasPermission, setHasPermission] = useState(null);
   const [type, setType] = useState(Camera.Constants.Type.back);
+  const [comment, setComment] = useState("");
   const [camera, setCamera] = useState(null);
   const [photo, setPhoto] = useState(null);
+  const [location, setLocation] = useState(null);
+
+  const { userId, nickName } = useSelector((state) => state.auth);
 
 useEffect(() => {
     (async () => {
-      const { status } = await Camera.requestCameraPermissionsAsync();
+      let { status } = await Camera.requestCameraPermissionsAsync();
       setHasPermission(status === 'granted');
       })();
     (async () => {
-          let { status } = await Location.requestForegroundPermissionsAsync();
-          if (status !== 'granted') {
-            setErrorMsg('Permission to access location was denied');
-            return;
-          }
-        })();
+      let { status } = await Location.requestForegroundPermissionsAsync();
+      let locationRes = await Location.getCurrentPositionAsync({});
+      setLocation(locationRes);
+    })();
   }, []);
 
   if (hasPermission === null) {
@@ -33,21 +36,41 @@ useEffect(() => {
   }
 
   const takePhoto = async () => {
-    const photo = await camera.takePictureAsync();
-    const location = await Location.getCurrentPositionAsync();
-    setPhoto(photo.uri);
-    console.log("photo", photo);
+    const { uri } = await camera.takePictureAsync();
+    setPhoto(uri);
   };
 
-const sendPhoto = () => {
-    console.log("navigation", navigation);
-    navigation.navigate("DefaultScreen", { photo });
+  const sendPhoto = () => {
+    uploadPostToServer();
+    navigation.navigate("DefaultScreen");
   };
 
-    return(
+  const uploadPostToServer = async () => {
+    const photo = await uploadPhotoToServer();
+    const createPost = await db
+        .firestore()
+        .collection("posts")
+        .add({ photo, comment,  location: location.coords, userId, nickName })
+  };
+
+  const uploadPhotoToServer = async () => {
+    const response = await fetch(photo);
+    const file = await response.blob();
+    const uniquePostId = Date.now().toString();
+    await db.storage().ref(`postImage/${uniquePostId}`).put(file);
+
+    const processedPhoto = await db
+      .storage()
+      .ref("postImage")
+      .child(uniquePostId)
+      .getDownloadURL();
+    return processedPhoto;
+  };
+
+  return(
     <View style={styles.container}>
         <Camera style={styles.camera} type={type} ref={setCamera}>
-        {photo && (
+          {photo && (
                   <View style={styles.takePhotoContainer}>
                     <Image
                       source={{ uri: photo }}
@@ -55,8 +78,8 @@ const sendPhoto = () => {
                     />
                   </View>
                 )}
-    <View style={{flexDirection:'row', alignItems:'center', justifyContent:'center'}}>
-              <TouchableOpacity
+          <View style={{flexDirection:'row', alignItems:'center', justifyContent:'center'}}>
+             <TouchableOpacity
                 style={{...styles.snapContainer,  marginRight: 10}}
                 onPress={() => {
                   setType(
@@ -65,20 +88,23 @@ const sendPhoto = () => {
                       : Camera.Constants.Type.back
                   );
                 }}>
-                <Text style={styles.sendLabel}> Flip </Text>
-              </TouchableOpacity>
-              <TouchableOpacity
-                            style={styles.snapContainer}
-                            onPress={takePhoto}>
-                            <Text style={styles.sendLabel}>Photo </Text>
-              </TouchableOpacity>
-              </View>
-            </Camera>
-            <View>
-                <TouchableOpacity onPress={sendPhoto} style={styles.sendBtn}>
-                  <Text style={styles.sendLabel}>SEND</Text>
-                </TouchableOpacity>
-            </View>
+               <Text style={styles.sendLabel}> Flip </Text>
+             </TouchableOpacity>
+             <TouchableOpacity
+                 style={styles.snapContainer}
+                 onPress={takePhoto}>
+               <Text style={styles.sendLabel}>Photo </Text>
+             </TouchableOpacity>
+          </View>
+        </Camera>
+        <View>
+           <View style={styles.inputContainer}>
+             <TextInput style={styles.input} onChangeText={setComment} />
+           </View>
+           <TouchableOpacity onPress={sendPhoto} style={styles.sendBtn}>
+             <Text style={styles.sendLabel}>SEND</Text>
+           </TouchableOpacity>
+       </View>
     </View>
   );
 };
@@ -130,6 +156,15 @@ const styles = StyleSheet.create({
     color: "#20b2aa",
     fontSize: 20,
   },
+  inputContainer: {
+      marginHorizontal: 10,
+    },
+    input: {
+      height: 50,
+      borderWidth: 1,
+      borderColor: "#fff",
+      borderBottomColor: "#20b2aa",
+    },
 });
 
 export default CreateScreen;
